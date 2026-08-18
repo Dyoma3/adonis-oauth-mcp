@@ -1,0 +1,29 @@
+{
+  "name": "@dinko/adonis-oauth",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OAuth 2.1 authorization server for AdonisJS, with a registry of protected resources",
+  "license": "MIT",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "files": [
+    "build"
+  ],
+  "exports": {
+    ".": "./build/index.js",
+    "./types": "./build/src/types.js",
+    "./oauth_provider": "./build/providers/oauth_provider.js"
+  },
+  "scripts": {
+    "build": "npm run clean && tsc && npm run copy:stubs",
+    "copy:stubs": "copyfiles \"stubs/**/*.stub\" build",
+    "clean": "rm -rf build",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@adonisjs/core": "^7.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

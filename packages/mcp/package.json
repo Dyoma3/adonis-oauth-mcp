@@ -1,0 +1,33 @@
+{
+  "name": "@dinko/adonis-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MCP server for AdonisJS, registered as a protected resource of @dinko/adonis-oauth",
+  "license": "MIT",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "files": [
+    "build"
+  ],
+  "exports": {
+    ".": "./build/index.js",
+    "./types": "./build/src/types.js",
+    "./mcp_provider": "./build/providers/mcp_provider.js"
+  },
+  "scripts": {
+    "build": "npm run clean && tsc && npm run copy:stubs",
+    "copy:stubs": "copyfiles \"stubs/**/*.stub\" build",
+    "clean": "rm -rf build",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@adonisjs/core": "^7.4.0",
+    "@dinko/adonis-oauth": "^0.1.0"
+  },
+  "devDependencies": {
+    "@dinko/adonis-oauth": "^0.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "adonis-oauth-mcp",
+  "private": true,
+  "type": "module",
+  "description": "AdonisJS packages for an OAuth 2.1 authorization server and an MCP server",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "clean": "npm run clean --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "devDependencies": {
+    "@adonisjs/core": "^7.4.0",
+    "@adonisjs/tsconfig": "^2.0.0",
+    "@types/node": "^22.0.0",
+    "copyfiles": "^2.4.1",
+    "typescript": "~6.0.3"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
