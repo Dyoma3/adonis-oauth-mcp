@@ -2,7 +2,15 @@
   "extends": "@adonisjs/tsconfig/tsconfig.package.json",
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "./build"
+    "outDir": "./build",
+    "emitDecoratorMetadata": true
   },
-  "include": ["index.ts", "configure.ts", "src/**/*", "providers/**/*", "stubs/**/*.ts"]
+  "include": [
+    "index.ts",
+    "configure.ts",
+    "src/**/*",
+    "providers/**/*",
+    "services/**/*",
+    "stubs/**/*.ts"
+  ]
 }

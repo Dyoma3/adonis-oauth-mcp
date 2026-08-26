@@ -1,0 +1,58 @@
+{{{
+  exports({
+    to: app.httpControllersPath('oauth_controller.ts')
+  })
+}}}
+import { inject } from '@adonisjs/core'
+import { HttpContext } from '@adonisjs/core/http'
+import {
+  OAuthApproveAuthorization,
+  OAuthDenyAuthorization,
+  OAuthServer,
+  OAuthTokenExchange,
+} from '@dinko/adonis-oauth'
+
+/**
+ * Wire these up in start/routes.ts. Only approve and deny need your
+ * authentication middleware; the token and discovery endpoints are public.
+ *
+ *   router.get('.well-known/oauth-authorization-server', [OauthController, 'getAuthorizationServer'])
+ *   router.get('.well-known/oauth-protected-resource/:resource', [OauthController, 'getProtectedResource'])
+ *
+ *   router.group(() => {
+ *     router.post('token', [OauthController, 'token'])
+ *     router.group(() => {
+ *       router.post('authorize/approve', [OauthController, 'approveAuthorization'])
+ *       router.post('authorize/deny', [OauthController, 'denyAuthorization'])
+ *     }).use(middleware.auth())
+ *   }).prefix('oauth')
+ */
+export default class OauthController {
+  @inject()
+  approveAuthorization(_ctx: HttpContext, authorization: OAuthApproveAuthorization) {
+    return authorization.execute()
+  }
+
+  @inject()
+  denyAuthorization(_ctx: HttpContext, authorization: OAuthDenyAuthorization) {
+    return authorization.execute()
+  }
+
+  @inject()
+  token(_ctx: HttpContext, exchange: OAuthTokenExchange) {
+    return exchange.execute()
+  }
+
+  @inject()
+  getAuthorizationServer({ response }: HttpContext, server: OAuthServer) {
+    return response.ok(server.authorizationServerMetadata())
+  }
+
+  @inject()
+  getProtectedResource({ params, response }: HttpContext, server: OAuthServer) {
+    const metadata = server.protectedResourceMetadata(params.resource)
+    if (!metadata) return response.notFound({ error: 'not_found' })
+
+    return response.ok(metadata)
+  }
+}

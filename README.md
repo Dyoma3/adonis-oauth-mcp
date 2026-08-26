@@ -6,7 +6,7 @@ changes to the resource-registration contract never need cross-repo coordination
 | Package | Owns |
 | --- | --- |
 | `packages/oauth` (`@dinko/adonis-oauth`) | OAuth 2.1 authorization server: token / approve / deny, redirect-URI validation, authorization-code storage, authorization-server metadata, and a generic protected-resource metadata endpoint driven by a resource registry. Knows nothing about MCP. |
-| `packages/mcp` (`@dinko/adonis-mcp`) | MCP server: request handler, controller, tool contract, auth middleware. Registers itself as an OAuth protected resource, declaring its resource URL, scopes, clients, `resource_name` and token provider. |
+| `packages/mcp` (`@dinko/adonis-mcp`) | MCP server: request handler, controller, tool contract, auth middleware. Registers itself as an OAuth protected resource, declaring its resource URL, scopes, clients, `resource_name` and token provider. Not started yet. |
 
 The dependency runs one way: **mcp → oauth**. Nothing in `oauth` may import
 from `mcp`.
@@ -21,6 +21,7 @@ configure.ts   the configure hook, driving codemods and stubs
 stubs/         .stub templates rendered into the target app
 src/           runtime code the app imports
 providers/     service providers registered by the configure hook
+services/      container services, for code that cannot use dependency injection
 ```
 
 ## Development
@@ -29,17 +30,135 @@ providers/     service providers registered by the configure hook
 npm install     # links the workspaces
 npm run build   # tsc + copy stubs, per package
 npm run typecheck
+npm test        # runs against build/, so build first
 ```
 
-## Using in an app
+While developing, install into an app from this checkout (`npm link`, `file:`
+or a git dependency) rather than the registry.
 
-Both packages must be installed and configured in the target app, oauth first:
+# @dinko/adonis-oauth
+
+An OAuth 2.1 authorization server with PKCE, for AdonisJS applications that
+need to hand access tokens to third-party clients.
+
+The package owns the protocol. The application owns three things it cannot
+delegate: **the consent screen**, **which token to issue**, and **the routes**.
 
 ```sh
-npm i @dinko/adonis-oauth @dinko/adonis-mcp
+npm i @dinko/adonis-oauth
 node ace configure @dinko/adonis-oauth
-node ace configure @dinko/adonis-mcp
 ```
 
-While developing, install from this checkout (`npm link`, `file:` or a git
-dependency) rather than the registry.
+Configuring generates three files and never overwrites an existing one:
+
+| File | What to do with it |
+| --- | --- |
+| `config/oauth.ts` | Declare your resources, their clients and `issueToken`. |
+| `database/migrations/..._create_oauth_authorization_codes_table.ts` | Adjust the `user_id` column to your users table, then migrate. |
+| `app/controllers/oauth_controller.ts` | Yours from here: delegates to the package, and is where you add anything it does not cover. |
+
+## Routes
+
+Not registered automatically — where they live and which middleware protects
+them is your decision. Add them to `start/routes.ts`:
+
+```ts
+router.get('.well-known/oauth-authorization-server', [OauthController, 'getAuthorizationServer'])
+router.get('.well-known/oauth-protected-resource/:resource', [OauthController, 'getProtectedResource'])
+
+router
+  .group(() => {
+    router.post('token', [OauthController, 'token'])
+    router
+      .group(() => {
+        router.post('authorize/approve', [OauthController, 'approveAuthorization'])
+        router.post('authorize/deny', [OauthController, 'denyAuthorization'])
+      })
+      .use(middleware.auth())
+  })
+  .prefix('oauth')
+```
+
+Approve and deny **must** be authenticated: the authorization code is bound to
+the user granting access. The token endpoint is public by specification, and is
+where authorization codes are redeemed, so it is a good place for a throttle.
+
+## Issuing tokens
+
+The type of token depends on the resource being accessed, so that decision
+lives with each resource rather than in the controller. Once the package has
+validated the request, consumed the authorization code and verified the PKCE
+verifier, it calls:
+
+```ts
+issueToken: async ({ userId, scopes, client, resource, ctx }) => {
+  const user = await User.find(userId)
+  if (!user) return null // rejects the exchange with invalid_grant
+
+  const expiresIn = 30 * 24 * 60 * 60
+  const token = await User.accessTokens.create(user, scopes, {
+    name: `oauth:${client.id}`,
+    expiresIn,
+  })
+
+  return { accessToken: token.value!.release(), expiresIn }
+}
+```
+
+`userId` is whatever was stored with the authorization code: the package has no
+knowledge of your user model, and never loads it.
+
+## The consent screen
+
+The `GET /oauth/authorize` page is yours — Edge, Inertia or a separate
+front end. The package only validates the request behind it:
+
+```ts
+const validation = server.validateAuthorizationRequest(request.qs())
+
+if (!validation.valid) {
+  return view.render('oauth/authorize', { error: validation.error })
+}
+
+return view.render('oauth/authorize', {
+  client: validation.client,
+  requestedScopes: validation.scopes,
+  authorizationFields: validation.fields, // post these back to approve
+})
+```
+
+Optional: applications rendering the screen elsewhere can skip it, since
+approve and deny validate the request again on their own.
+
+## Configuration
+
+```ts
+export default defineConfig({
+  issuer: env.get('APP_URL'),
+  authorizationEndpoint: `${env.get('APP_URL')}/oauth/authorize`,
+  tokenEndpoint: `${env.get('APP_URL')}/oauth/token`,
+
+  // optional
+  tokenEndpointAuthMethods: ['none'],
+  authorizationCodeTtlSeconds: 10 * 60,
+  authorizationCodesTable: 'oauth_authorization_codes',
+  authenticatedUserId: (ctx) => ctx.auth.user?.id, // defaults to this
+
+  resources: [mcpResource],
+})
+```
+
+Each resource declares:
+
+| Field | |
+| --- | --- |
+| `id` | Slug used in `/.well-known/oauth-protected-resource/<id>`. |
+| `resource` | Canonical resource indicator clients send as the `resource` parameter. |
+| `resourceName` | Human-readable name, advertised through discovery. |
+| `scopes` | Every scope the resource understands. |
+| `clients` | `id`, `redirectUris`, `redirectUriPatterns`, `allowedScopes`. |
+| `issueToken` | Mints the access token. |
+
+Loopback redirect URIs (`http://localhost/callback`) match on any port, per
+RFC 8252, and `redirectUriPatterns` allows a single `:param` segment for
+clients whose callback carries an id.
