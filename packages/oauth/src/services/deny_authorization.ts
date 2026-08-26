@@ -1,6 +1,7 @@
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
-import OAuthAuthorizationFlow from './authorization_flow.js'
+import OAuthAuthorizationResolver from '../authorization_resolver.js'
+import OAuthResponder from '../responder.js'
 import OAuthServer from '../oauth_server.js'
 
 /**
@@ -9,18 +10,22 @@ import OAuthServer from '../oauth_server.js'
  * so a denial cannot be used to redirect a user anywhere.
  */
 @inject()
-export default class OAuthDenyAuthorization extends OAuthAuthorizationFlow {
-  constructor(ctx: HttpContext, server: OAuthServer) {
-    super(ctx, server)
-  }
+export default class OAuthDenyAuthorization {
+  constructor(
+    private ctx: HttpContext,
+    private server: OAuthServer
+  ) {}
 
   execute() {
-    const payload = this.getPayload()
-    if (!payload) return this.invalidRequestResponse('The authorization request is invalid')
+    const responder = new OAuthResponder(this.ctx)
+    const authorization = new OAuthAuthorizationResolver(this.server)
 
-    const resolution = this.resolve(payload)
-    if (!resolution.ok) return resolution.response
+    const payload = authorization.parse(this.ctx.request.body())
+    if (!payload) return responder.invalidRequest('The authorization request is invalid')
 
-    return this.redirectWithError(payload, 'access_denied')
+    const resolution = authorization.resolve(payload)
+    if (!resolution.ok) return responder.authorizationError(resolution.error)
+
+    return responder.redirectWithError(payload, 'access_denied')
   }
 }

@@ -1,11 +1,20 @@
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
-import OAuthAuthorizationFlow from './authorization_flow.js'
+import OAuthAuthorizationResolver from '../authorization_resolver.js'
 import OAuthAuthorizationCode from '../models/authorization_code.js'
+import OAuthResponder from '../responder.js'
 import OAuthServer from '../oauth_server.js'
 import { parseScopes } from '../scopes.js'
-import type { AuthorizationRequestPayload } from '../validators.js'
 import type { OAuthClientConfig } from '../types.js'
+
+/**
+ * A context that may carry an authenticated user, without depending on
+ * `@adonisjs/auth` for the type. Applications using another authentication
+ * package point `authenticatedUserId` at their own resolver instead.
+ */
+type MaybeAuthenticatedContext = HttpContext & {
+  auth?: { user?: { id?: string | number } }
+}
 
 /**
  * Grants an authorization request: issues a single-use authorization code and
@@ -15,27 +24,31 @@ import type { OAuthClientConfig } from '../types.js'
  * since the code is bound to the user granting access.
  */
 @inject()
-export default class OAuthApproveAuthorization extends OAuthAuthorizationFlow {
-  constructor(ctx: HttpContext, server: OAuthServer) {
-    super(ctx, server)
-  }
+export default class OAuthApproveAuthorization {
+  constructor(
+    private ctx: HttpContext,
+    private server: OAuthServer
+  ) {}
 
   async execute() {
-    const payload = this.getPayload()
-    if (!payload) return this.invalidRequestResponse('The authorization request is invalid')
+    const responder = new OAuthResponder(this.ctx)
+    const authorization = new OAuthAuthorizationResolver(this.server)
 
-    const resolution = this.resolve(payload)
-    if (!resolution.ok) return resolution.response
+    const payload = authorization.parse(this.ctx.request.body())
+    if (!payload) return responder.invalidRequest('The authorization request is invalid')
+
+    const resolution = authorization.resolve(payload)
+    if (!resolution.ok) return responder.authorizationError(resolution.error)
 
     const { client } = resolution
     const scopes = parseScopes(payload.scope, client.allowedScopes)
 
     if (!this.clientAllowsScopes(client, scopes)) {
-      return this.redirectWithError(payload, 'invalid_scope')
+      return responder.redirectWithError(payload, 'invalid_scope')
     }
 
-    const userId = this.getAuthenticatedUserId()
-    if (userId === null) return this.unauthenticatedResponse()
+    const userId = this.resolveUserId()
+    if (userId === null) return responder.unauthenticated()
 
     const { code } = await OAuthAuthorizationCode.issue(
       {
@@ -50,17 +63,24 @@ export default class OAuthApproveAuthorization extends OAuthAuthorizationFlow {
       this.server.authorizationCodeTtlSeconds
     )
 
-    return this.redirectWithAuthorizationCode(payload, code)
+    return responder.redirectWithAuthorizationCode(payload, code)
+  }
+
+  /**
+   * The id of the user granting access. Reading it from `ctx.auth` by default
+   * covers `@adonisjs/auth`; anything else is configured explicitly.
+   */
+  private resolveUserId() {
+    const resolve = this.server.config.authenticatedUserId
+    const userId = resolve
+      ? resolve(this.ctx)
+      : (this.ctx as MaybeAuthenticatedContext).auth?.user?.id
+
+    return userId ?? null
   }
 
   private clientAllowsScopes(client: OAuthClientConfig, scopes: string[]) {
     const allowedScopes = new Set<string>(client.allowedScopes)
     return scopes.every((scope) => allowedScopes.has(scope))
-  }
-
-  private redirectWithAuthorizationCode(payload: AuthorizationRequestPayload, code: string) {
-    return this.ctx.response.redirect(
-      this.buildRedirectUrl(payload.redirect_uri, { code, state: payload.state })
-    )
   }
 }

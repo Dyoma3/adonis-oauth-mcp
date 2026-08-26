@@ -1,8 +1,8 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
-import OAuthFlow from './flow.js'
 import OAuthAuthorizationCode from '../models/authorization_code.js'
+import OAuthResponder from '../responder.js'
 import OAuthServer from '../oauth_server.js'
 import { tokenRequestValidator } from '../validators.js'
 import type { TokenRequestPayload } from '../validators.js'
@@ -17,32 +17,34 @@ import type { TokenRequestPayload } from '../validators.js'
  * resource's `issueToken`.
  */
 @inject()
-export default class OAuthTokenExchange extends OAuthFlow {
-  constructor(ctx: HttpContext, server: OAuthServer) {
-    super(ctx, server)
-  }
+export default class OAuthTokenExchange {
+  constructor(
+    private ctx: HttpContext,
+    private server: OAuthServer
+  ) {}
 
   async execute() {
+    const responder = new OAuthResponder(this.ctx)
     this.disableCaching()
 
-    const payload = this.getPayload()
-    if (!payload) return this.invalidRequestResponse()
+    const payload = this.parsePayload()
+    if (!payload) return responder.invalidRequest()
 
     const authorizationCode = await OAuthAuthorizationCode.consume(payload.code)
-    if (!authorizationCode) return this.invalidGrantResponse()
+    if (!authorizationCode) return responder.invalidGrant()
 
     const resource = this.server.getResource(authorizationCode.resource)
-    if (!resource) return this.invalidGrantResponse()
+    if (!resource) return responder.invalidGrant()
 
     const client = this.server.getClient(resource, payload.client_id)
-    if (!client) return this.invalidClientResponse()
+    if (!client) return responder.invalidClient()
 
-    if (payload.client_id !== authorizationCode.clientId) return this.invalidGrantResponse()
-    if (payload.redirect_uri !== authorizationCode.redirectUri) return this.invalidGrantResponse()
-    if (payload.resource !== authorizationCode.resource) return this.invalidGrantResponse()
-    if (authorizationCode.codeChallengeMethod !== 'S256') return this.invalidGrantResponse()
+    if (payload.client_id !== authorizationCode.clientId) return responder.invalidGrant()
+    if (payload.redirect_uri !== authorizationCode.redirectUri) return responder.invalidGrant()
+    if (payload.resource !== authorizationCode.resource) return responder.invalidGrant()
+    if (authorizationCode.codeChallengeMethod !== 'S256') return responder.invalidGrant()
     if (!this.isValidPkceVerifier(payload, authorizationCode.codeChallenge)) {
-      return this.invalidGrantResponse()
+      return responder.invalidGrant()
     }
 
     const token = await resource.issueToken({
@@ -53,7 +55,7 @@ export default class OAuthTokenExchange extends OAuthFlow {
       ctx: this.ctx,
     })
 
-    if (!token) return this.invalidGrantResponse()
+    if (!token) return responder.invalidGrant()
 
     return this.ctx.response.ok({
       access_token: token.accessToken,
@@ -63,7 +65,15 @@ export default class OAuthTokenExchange extends OAuthFlow {
     })
   }
 
-  private getPayload() {
+  /**
+   * Token responses carry credentials, so they must never be cached.
+   */
+  private disableCaching() {
+    this.ctx.response.header('Cache-Control', 'no-store')
+    this.ctx.response.header('Pragma', 'no-cache')
+  }
+
+  private parsePayload() {
     const parsed = tokenRequestValidator.safeParse(this.ctx.request.body())
     return parsed.success ? parsed.data : null
   }
@@ -80,10 +90,5 @@ export default class OAuthTokenExchange extends OAuthFlow {
 
     if (valueBuffer.length !== expectedValueBuffer.length) return false
     return timingSafeEqual(valueBuffer, expectedValueBuffer)
-  }
-
-  private disableCaching() {
-    this.ctx.response.header('Cache-Control', 'no-store')
-    this.ctx.response.header('Pragma', 'no-cache')
   }
 }
