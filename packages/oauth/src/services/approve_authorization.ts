@@ -31,7 +31,7 @@ export default class OAuthApproveAuthorization {
   ) {}
 
   async execute() {
-    const responder = new OAuthResponder(this.ctx)
+    const responder = new OAuthResponder(this.ctx, this.server.redirectMode)
     const authorization = new OAuthAuthorizationResolver(this.server)
 
     const payload = authorization.parse(this.ctx.request.body())

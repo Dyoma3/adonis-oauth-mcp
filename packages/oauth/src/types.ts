@@ -55,6 +55,19 @@ export type OAuthResourceConfig<TScope extends string = string> = {
   issueToken(context: IssueTokenContext): Promise<IssuedToken | null> | IssuedToken | null
 }
 
+/**
+ * How the approve and deny endpoints hand the redirect back to the client.
+ *
+ * 'json' answers 200 with { redirect_to }, for a consent screen that posts its
+ * decision with fetch or axios: an XHR follows a 302 by re-issuing the request,
+ * so the page never navigates and the user is left where they were. The script
+ * navigates itself with window.location.assign(redirect_to).
+ *
+ * 'http' answers 302, for a consent screen submitted as a plain HTML form,
+ * where the browser is navigating the document and follows it natively.
+ */
+export type OAuthRedirectMode = 'json' | 'http'
+
 export type OAuthConfig = {
   issuer: string
   authorizationEndpoint: string
@@ -62,6 +75,7 @@ export type OAuthConfig = {
   tokenEndpointAuthMethods?: readonly string[]
   authorizationCodeTtlSeconds?: number
   authorizationCodesTable?: string
+  redirectMode?: OAuthRedirectMode
 
   /**
    * How to read the user granting access on the approve endpoint. Defaults to

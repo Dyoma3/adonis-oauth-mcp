@@ -5,6 +5,7 @@ import type {
   AuthorizationServerMetadata,
   OAuthClientConfig,
   OAuthConfig,
+  OAuthRedirectMode,
   OAuthResourceConfig,
   ProtectedResourceMetadata,
 } from './types.js'
@@ -60,6 +61,10 @@ export default class OAuthServer {
 
   get resources() {
     return this.config.resources
+  }
+
+  get redirectMode(): OAuthRedirectMode {
+    return this.config.redirectMode ?? 'json'
   }
 
   get authorizationCodeTtlSeconds() {

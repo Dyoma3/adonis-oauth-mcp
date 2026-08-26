@@ -1,6 +1,7 @@
 import { HttpContext } from '@adonisjs/core/http'
 import type { AuthorizationRequestPayload } from './validators.js'
 import type { AuthorizationErrorKind } from './authorization_resolver.js'
+import type { OAuthRedirectMode } from './types.js'
 
 /**
  * Speaks OAuth back to the client. Every failure is reported with an OAuth
@@ -8,7 +9,10 @@ import type { AuthorizationErrorKind } from './authorization_resolver.js'
  * clients cannot interpret.
  */
 export default class OAuthResponder {
-  constructor(private ctx: HttpContext) {}
+  constructor(
+    private ctx: HttpContext,
+    private redirectMode: OAuthRedirectMode = 'json'
+  ) {}
 
   invalidRequest(description?: string) {
     return this.ctx.response.badRequest({
@@ -61,6 +65,11 @@ export default class OAuthResponder {
     return this.redirect(payload.redirect_uri, { code, state: payload.state })
   }
 
+  /**
+   * Sends the client back to its redirect URI, either by redirecting or by
+   * handing the URL to the consent screen so it can navigate itself. See
+   * `OAuthRedirectMode`.
+   */
   private redirect(redirectUri: string, params: Record<string, string | undefined>) {
     const redirectUrl = new URL(redirectUri)
 
@@ -68,6 +77,10 @@ export default class OAuthResponder {
       if (value) redirectUrl.searchParams.set(key, value)
     })
 
-    return this.ctx.response.redirect(redirectUrl.toString())
+    if (this.redirectMode === 'http') {
+      return this.ctx.response.redirect(redirectUrl.toString())
+    }
+
+    return this.ctx.response.ok({ redirect_to: redirectUrl.toString() })
   }
 }

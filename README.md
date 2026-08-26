@@ -83,6 +83,24 @@ Approve and deny **must** be authenticated: the authorization code is bound to
 the user granting access. The token endpoint is public by specification, and is
 where authorization codes are redeemed, so it is a good place for a throttle.
 
+## Handing the redirect back
+
+Approve and deny answer `200 { redirect_to }` by default, and the consent
+screen navigates itself:
+
+```js
+window.location.assign(response.redirect_to)
+```
+
+That is what a screen posting its decision with fetch or axios needs. An XHR
+follows a 302 by re-issuing the request, so the page never navigates: the user
+stays on the consent screen while the request lands cross-origin on the
+client's callback and fails CORS.
+
+Set `redirectMode: 'http'` when the consent screen is a plain HTML form. There
+the browser is navigating the document, so it follows the 302 natively and the
+user lands on the client.
+
 ## Issuing tokens
 
 The type of token depends on the resource being accessed, so that decision
@@ -139,6 +157,7 @@ export default defineConfig({
   tokenEndpoint: `${env.get('APP_URL')}/oauth/token`,
 
   // optional
+  redirectMode: 'json', // or 'http'
   tokenEndpointAuthMethods: ['none'],
   authorizationCodeTtlSeconds: 10 * 60,
   authorizationCodesTable: 'oauth_authorization_codes',

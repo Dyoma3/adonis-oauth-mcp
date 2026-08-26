@@ -63,5 +63,19 @@ export default defineConfig({
   authorizationEndpoint: \`\${env.get('APP_URL')}/oauth/authorize\`,
   tokenEndpoint: \`\${env.get('APP_URL')}/oauth/token\`,
 
+  /**
+   * How approve and deny hand the redirect back to the client.
+   *
+   * 'json' answers 200 with a redirect_to property, and the consent screen
+   * navigates itself with window.location.assign. Use it whenever the screen
+   * posts its decision with fetch or axios: an XHR follows a 302 by re-issuing
+   * the request, so the page never navigates and the user is left where they
+   * were, looking at the consent screen.
+   *
+   * 'http' answers 302. Use it when the consent screen is a plain HTML form,
+   * where the browser is navigating the document and follows it natively.
+   */
+  redirectMode: 'json',
+
   resources: [mcpResource],
 })
