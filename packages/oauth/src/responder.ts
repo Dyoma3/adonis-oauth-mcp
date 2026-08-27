@@ -1,5 +1,5 @@
 import { HttpContext } from '@adonisjs/core/http'
-import type { AuthorizationRequestPayload } from './validators.js'
+import type { AuthorizationTarget } from './validators.js'
 import type { AuthorizationErrorKind } from './authorization_resolver.js'
 import type { OAuthRedirectMode } from './types.js'
 
@@ -57,12 +57,12 @@ export default class OAuthResponder {
     })
   }
 
-  redirectWithError(payload: AuthorizationRequestPayload, error: string) {
-    return this.redirect(payload.redirect_uri, { error, state: payload.state })
+  redirectWithError(target: AuthorizationTarget, error: string) {
+    return this.redirect(target.redirect_uri, { error, state: target.state })
   }
 
-  redirectWithAuthorizationCode(payload: AuthorizationRequestPayload, code: string) {
-    return this.redirect(payload.redirect_uri, { code, state: payload.state })
+  redirectWithAuthorizationCode(target: AuthorizationTarget, code: string) {
+    return this.redirect(target.redirect_uri, { code, state: target.state })
   }
 
   /**

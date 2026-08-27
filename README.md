@@ -101,6 +101,18 @@ Set `redirectMode: 'http'` when the consent screen is a plain HTML form. There
 the browser is navigating the document, so it follows the 302 natively and the
 user lands on the client.
 
+## Reporting errors
+
+Approve and deny resolve the client and its redirect URI before validating
+anything else. Until both are known to be registered, an error cannot be
+reported by redirecting — the request could be pointing anywhere — so it is
+answered directly with `invalid_target`, `invalid_client` or `invalid_request`.
+
+Once the redirect URI is trusted, every remaining error goes back to the client
+through it, carrying `error` and the original `state`, as RFC 6749 section
+4.1.2.1 requires. A malformed `code_challenge` reaches the client as
+`error=invalid_request`, not as a validation response it cannot interpret.
+
 ## Issuing tokens
 
 The type of token depends on the resource being accessed, so that decision

@@ -48,6 +48,22 @@ test('rejects a body that is not an authorization request', () => {
   assert.equal(resolver.parse(undefined), null)
 })
 
+test('reads the target from a request the full validator would reject', () => {
+  const target = resolver.parseTarget({ ...payload, code_challenge: 'too-short' })
+
+  assert.deepEqual(target, {
+    client_id: 'claude',
+    redirect_uri: 'https://claude.ai/api/mcp/auth_callback',
+    resource: 'https://app.test/mcp',
+  })
+})
+
+test('refuses a target whose redirect URI cannot be trusted', () => {
+  assert.equal(resolver.parseTarget({ ...payload, redirect_uri: 'not-a-url' }), null)
+  assert.equal(resolver.parseTarget({ ...payload, redirect_uri: undefined }), null)
+  assert.equal(resolver.parseTarget({ ...payload, client_id: '' }), null)
+})
+
 test('resolves the resource and the client', () => {
   const resolution = resolver.resolve(payload)
 

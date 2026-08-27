@@ -20,12 +20,16 @@ export default class OAuthDenyAuthorization {
     const responder = new OAuthResponder(this.ctx, this.server.redirectMode)
     const authorization = new OAuthAuthorizationResolver(this.server)
 
-    const payload = authorization.parse(this.ctx.request.body())
-    if (!payload) return responder.invalidRequest('The authorization request is invalid')
+    /**
+     * A denial only needs to know where to send the user back to. The rest of
+     * the authorization request is irrelevant: nothing is being issued.
+     */
+    const target = authorization.parseTarget(this.ctx.request.body())
+    if (!target) return responder.invalidRequest('The authorization request is invalid')
 
-    const resolution = authorization.resolve(payload)
+    const resolution = authorization.resolve(target)
     if (!resolution.ok) return responder.authorizationError(resolution.error)
 
-    return responder.redirectWithError(payload, 'access_denied')
+    return responder.redirectWithError(target, 'access_denied')
   }
 }

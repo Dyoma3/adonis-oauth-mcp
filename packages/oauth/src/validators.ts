@@ -18,6 +18,18 @@ export const authorizationRequestValidator = z.object({
   resource: z.url(),
 })
 
+/**
+ * The part of an authorization request that has to be trusted before anything
+ * else: until the client and its redirect URI are known to be registered, no
+ * error may be reported by redirecting.
+ */
+export const authorizationTargetValidator = z.object({
+  client_id: z.string().min(1),
+  redirect_uri: z.url(),
+  resource: z.url(),
+  state: z.string().optional(),
+})
+
 export const tokenRequestValidator = z.object({
   grant_type: z.literal('authorization_code'),
   code: z.string().min(1),
@@ -32,4 +44,5 @@ export const tokenRequestValidator = z.object({
 })
 
 export type AuthorizationRequestPayload = z.infer<typeof authorizationRequestValidator>
+export type AuthorizationTarget = z.infer<typeof authorizationTargetValidator>
 export type TokenRequestPayload = z.infer<typeof tokenRequestValidator>

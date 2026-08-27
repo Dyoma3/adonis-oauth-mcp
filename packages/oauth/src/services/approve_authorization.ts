@@ -34,11 +34,23 @@ export default class OAuthApproveAuthorization {
     const responder = new OAuthResponder(this.ctx, this.server.redirectMode)
     const authorization = new OAuthAuthorizationResolver(this.server)
 
-    const payload = authorization.parse(this.ctx.request.body())
-    if (!payload) return responder.invalidRequest('The authorization request is invalid')
+    /**
+     * The client and its redirect URI come first: until both are known to be
+     * registered, an error cannot be reported by redirecting, and has to be
+     * answered directly instead (RFC 6749 section 4.1.2.1).
+     */
+    const target = authorization.parseTarget(this.ctx.request.body())
+    if (!target) return responder.invalidRequest('The authorization request is invalid')
 
-    const resolution = authorization.resolve(payload)
+    const resolution = authorization.resolve(target)
     if (!resolution.ok) return responder.authorizationError(resolution.error)
+
+    /**
+     * From here the redirect URI is trusted, so every remaining error goes
+     * back to the client the way the specification asks for.
+     */
+    const payload = authorization.parse(this.ctx.request.body())
+    if (!payload) return responder.redirectWithError(target, 'invalid_request')
 
     const { client } = resolution
     const scopes = parseScopes(payload.scope, client.allowedScopes)
