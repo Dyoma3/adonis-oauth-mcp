@@ -23,8 +23,14 @@
     "test": "node --test \"tests/**/*.test.mjs\""
   },
   "peerDependencies": {
+    "@adonisjs/assembler": "^8.4.0",
     "@adonisjs/core": "^7.4.0",
     "@adonisjs/lucid": "^22.4.2"
+  },
+  "peerDependenciesMeta": {
+    "@adonisjs/assembler": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public"
