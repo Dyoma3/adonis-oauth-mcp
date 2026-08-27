@@ -85,11 +85,19 @@ export default class OAuthRedirectUriMatcher {
     }
   }
 
+  /**
+   * RFC 8252 section 7.3 names both loopback addresses, plus localhost. An
+   * IPv6 literal keeps its brackets in `URL.hostname`.
+   */
   private isLoopbackRedirectUri(url: URL) {
-    return url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)
+    return url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   }
 
+  /**
+   * A registration that pins a port asks for that port, so the variance RFC
+   * 8252 allows does not apply to it.
+   */
   private hasExplicitPort(value: string) {
-    return /^http:\/\/(?:localhost|127\.0\.0\.1):\d+(?:\/|$)/.test(value)
+    return /^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\]):\d+(?:\/|$)/.test(value)
   }
 }

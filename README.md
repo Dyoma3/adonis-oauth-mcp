@@ -178,6 +178,23 @@ Each resource declares:
 | `clients` | `id`, `redirectUris`, `redirectUriPatterns`, `allowedScopes`. |
 | `issueToken` | Mints the access token. |
 
-Loopback redirect URIs (`http://localhost/callback`) match on any port, per
-RFC 8252, and `redirectUriPatterns` allows a single `:param` segment for
-clients whose callback carries an id.
+## Matching redirect URIs
+
+Registered URIs match exactly, with two deliberate exceptions for native
+clients.
+
+**Loopback** (`localhost`, `127.0.0.1`, `[::1]`) may vary the port, as RFC 8252
+section 7.3 requires, unless the registration pins one. It may also append
+segments *under* the registered path, which the specification does not allow:
+Codex generates a random one, calling back on
+`http://127.0.0.1:59137/callback/--52FXdsbEbv` against a registered
+`http://127.0.0.1/callback`. Only descendants qualify, never a sibling, so
+`/callbackevil/...` is rejected. Everything else — scheme, host, query,
+fragment — still has to match.
+
+**`redirectUriPatterns`** allows one `:param` segment, for the ChatGPT
+connector, whose callback carries an id. Patterns are https only, must match
+the origin exactly and have the same number of segments, and the generated
+segment must be `[A-Za-z0-9_-]+`.
+
+Both are extensions beyond OAuth 2.1, kept because real clients need them.
