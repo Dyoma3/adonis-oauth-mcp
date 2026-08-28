@@ -8,6 +8,7 @@
   "include": [
     "index.ts",
     "configure.ts",
+    "commands/**/*",
     "src/**/*",
     "providers/**/*",
     "services/**/*",

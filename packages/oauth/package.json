@@ -12,23 +12,29 @@
   "exports": {
     ".": "./build/index.js",
     "./types": "./build/src/types.js",
+    "./commands": "./build/commands/main.js",
     "./services/main": "./build/services/main.js",
     "./oauth_provider": "./build/providers/oauth_provider.js"
   },
   "scripts": {
-    "build": "npm run clean && tsc && npm run copy:stubs",
+    "build": "npm run clean && tsc && npm run copy:stubs && npm run index:commands",
     "copy:stubs": "copyfiles \"stubs/**/*.stub\" build",
     "clean": "rm -rf build",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"tests/**/*.test.mjs\""
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "index:commands": "adonis-kit index build/commands"
   },
   "peerDependencies": {
     "@adonisjs/assembler": "^8.4.0",
     "@adonisjs/core": "^7.4.0",
-    "@adonisjs/lucid": "^22.4.2"
+    "@adonisjs/lucid": "^22.4.2",
+    "ts-morph": "^27.0.2"
   },
   "peerDependenciesMeta": {
     "@adonisjs/assembler": {
+      "optional": true
+    },
+    "ts-morph": {
       "optional": true
     }
   },
@@ -42,6 +48,7 @@
   "devDependencies": {
     "@adonisjs/assembler": "^8.5.0",
     "@adonisjs/lucid": "^22.4.2",
-    "@types/luxon": "^3.7.4"
+    "@types/luxon": "^3.7.4",
+    "ts-morph": "^27.0.2"
   }
 }

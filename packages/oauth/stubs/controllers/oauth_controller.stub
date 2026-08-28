@@ -13,19 +13,10 @@ import {
 } from '@dinko/adonis-oauth'
 
 /**
- * Wire these up in start/routes.ts. Only approve and deny need your
- * authentication middleware; the token and discovery endpoints are public.
+ * Delegates to the package, which owns the protocol. Anything it does not
+ * cover — a header, a different error body, a log — belongs here.
  *
- *   router.get('.well-known/oauth-authorization-server', [OauthController, 'getAuthorizationServer'])
- *   router.get('.well-known/oauth-protected-resource/:resource', [OauthController, 'getProtectedResource'])
- *
- *   router.group(() => {
- *     router.post('token', [OauthController, 'token'])
- *     router.group(() => {
- *       router.post('authorize/approve', [OauthController, 'approveAuthorization'])
- *       router.post('authorize/deny', [OauthController, 'denyAuthorization'])
- *     }).use(middleware.auth())
- *   }).prefix('oauth')
+ * The routes are in start/routes.ts.
  */
 export default class OauthController {
   @inject()

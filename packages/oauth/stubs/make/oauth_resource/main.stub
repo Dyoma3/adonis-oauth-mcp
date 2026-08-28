@@ -1,0 +1,59 @@
+{{{
+  exports({
+    to: app.makePath('app/oauth_resources', fileName)
+  })
+}}}
+import env from '#start/env'
+import User from '#models/user'
+import type { OAuthResourceConfig } from '@dinko/adonis-oauth/types'
+
+const scopes = ['read', 'write'] as const
+type Scope = (typeof scopes)[number]
+
+const {{ variableName }}: OAuthResourceConfig<Scope> = {
+  /**
+   * The slug used in the discovery URL of this resource, and the identifier
+   * clients send as the resource parameter.
+   */
+  id: '{{ resourceId }}',
+  resource: \`\${env.get('APP_URL')}/{{ resourceId }}\`,
+  resourceName: '{{ resourceName }}',
+  protectedResourceMetadataUrl: \`\${env.get('APP_URL')}/.well-known/oauth-protected-resource/{{ resourceId }}\`,
+
+  scopes: [...scopes],
+
+  /**
+   * The clients allowed to ask for access to this resource. Loopback redirect
+   * URIs may vary their port; register them without one.
+   */
+  clients: [
+    {
+      id: 'example',
+      name: 'Example client',
+      redirectUris: ['https://example.com/callback'],
+      allowedScopes: [...scopes],
+    },
+  ],
+
+  /**
+   * Called once the authorization code has been validated and consumed. The
+   * package has no access to your user model or your token provider, so
+   * minting the token is up to you.
+   *
+   * Return null to reject the exchange with invalid_grant.
+   */
+  issueToken: async ({ userId, scopes: grantedScopes, client }) => {
+    const user = await User.find(userId)
+    if (!user) return null
+
+    const expiresIn = 30 * 24 * 60 * 60
+    const token = await User.accessTokens.create(user, grantedScopes, {
+      name: \`oauth:\${client.id}\`,
+      expiresIn,
+    })
+
+    return { accessToken: token.value!.release(), expiresIn }
+  },
+}
+
+export default {{ variableName }}

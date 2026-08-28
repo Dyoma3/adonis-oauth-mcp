@@ -36,9 +36,26 @@ test('renders config/oauth.ts with its template literals intact', async () => {
   const { destination, appRoot, contents } = await render('config/oauth.stub')
 
   assert.equal(destination, join(appRoot, 'config/oauth.ts'))
-  assert.match(contents, /resource: `\$\{env\.get\('APP_URL'\)\}\/mcp`/)
-  assert.match(contents, /name: `oauth:\$\{client\.id\}`/)
+  assert.match(contents, /tokenEndpoint: `\$\{env\.get\('APP_URL'\)\}\/oauth\/token`/)
   assert.match(contents, /export default defineConfig\(\{/)
+  assert.match(contents, /resources: \[\]/, 'ships without resources of its own')
+  assert.doesNotMatch(contents, /mcp/i, 'the oauth package knows nothing about MCP')
+})
+
+test('renders a resource into its own file', async () => {
+  const { destination, appRoot, contents } = await render('make/oauth_resource/main.stub', {
+    fileName: 'mcp_server_resource.ts',
+    variableName: 'mcpServerResource',
+    resourceId: 'mcp-server',
+    resourceName: 'Mcp Server',
+  })
+
+  assert.equal(destination, join(appRoot, 'app/oauth_resources/mcp_server_resource.ts'))
+  assert.match(contents, /const mcpServerResource: OAuthResourceConfig<Scope> = \{/)
+  assert.match(contents, /id: 'mcp-server'/)
+  assert.match(contents, /resource: `\$\{env\.get\('APP_URL'\)\}\/mcp-server`/)
+  assert.match(contents, /name: `oauth:\$\{client\.id\}`/)
+  assert.match(contents, /export default mcpServerResource/)
 })
 
 test('renders the authorization codes migration', async () => {

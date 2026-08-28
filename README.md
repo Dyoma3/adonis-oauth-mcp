@@ -53,9 +53,33 @@ Configuring generates three files and never overwrites an existing one:
 
 | File | What to do with it |
 | --- | --- |
-| `config/oauth.ts` | Declare your resources, their clients and `issueToken`. |
+| `config/oauth.ts` | Server settings, and the list of resources. It ships with none. |
 | `database/migrations/..._create_oauth_authorization_codes_table.ts` | Adjust the `user_id` column to your users table, then migrate. |
 | `app/controllers/oauth_controller.ts` | Yours from here: delegates to the package, and is where you add anything it does not cover. |
+
+## Resources
+
+A resource is something clients ask for access to. Each one lives in its own
+file under `app/oauth_resources`, with its scopes, its clients and its token
+issuing:
+
+```sh
+node ace make:oauth-resource mcp
+```
+
+Then register it in `config/oauth.ts`:
+
+```ts
+import mcpResource from '../app/oauth_resources/mcp_resource.js'
+
+export default defineConfig({
+  // ...
+  resources: [mcpResource],
+})
+```
+
+The package has no opinion about what a resource is — an MCP server, an API, a
+set of documents. It only routes tokens to the one that was asked for.
 
 ## Routes
 
