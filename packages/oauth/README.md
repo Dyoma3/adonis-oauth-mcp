@@ -3,23 +3,29 @@
 An OAuth 2.1 authorization server with PKCE, for AdonisJS applications that
 need to hand access tokens to third-party clients.
 
+Requires Node.js 24 or newer, AdonisJS v7 and Lucid.
+
 The package owns the protocol. The application owns three things it cannot
 delegate: **the consent screen**, **which token to issue**, and **the routes**.
 
 ```sh
 npm i @dinko/adonis-oauth
 node ace configure @dinko/adonis-oauth
+node ace migration:run
 ```
+
+Configure this package before `@dinko/adonis-mcp` when using both. MCP will
+then create its protected resource and OAuth discovery wiring automatically.
 
 Configuring writes these, and never overwrites what already exists:
 
-| File | What to do with it |
-| --- | --- |
-| `config/oauth.ts` | Server settings, and the list of resources. It ships with none. |
-| `database/migrations/..._create_oauth_authorization_codes_table.ts` | Adjust the `user_id` column to your users table, then migrate. |
-| `app/controllers/oauth_controller.ts` | Yours from here: delegates to the package, and is where you add anything it does not cover. |
-| `start/routes.ts` | The five routes, appended. Add your authentication middleware where it is marked. |
-| `adonisrc.ts` | The provider and the commands. |
+| File                                                                | What to do with it                                                                          |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `config/oauth.ts`                                                   | Server settings, and the list of resources. It ships with none.                             |
+| `database/migrations/..._create_oauth_authorization_codes_table.ts` | Adjust the `user_id` column to your users table, then migrate.                              |
+| `app/controllers/oauth_controller.ts`                               | Yours from here: delegates to the package, and is where you add anything it does not cover. |
+| `start/routes.ts`                                                   | The five routes, appended. Add your authentication middleware where it is marked.           |
+| `adonisrc.ts`                                                       | The provider and the commands.                                                              |
 
 ## Resources
 
@@ -30,6 +36,17 @@ issuing:
 ```sh
 node ace make:oauth-resource mcp
 ```
+
+By default the generated resource issues tokens through `User.accessTokens`.
+Choose another static access-token provider when the resource needs an isolated
+token type:
+
+```sh
+node ace make:oauth-resource mcp --tokens-provider=mcpAccessTokens
+```
+
+That provider must exist on the user model. `@dinko/adonis-mcp` creates its
+`mcpAccessTokens` provider and dedicated `mcp` guard automatically.
 
 The command registers it in `config/oauth.ts` for you:
 
@@ -164,14 +181,15 @@ export default defineConfig({
 
 Each resource declares:
 
-| Field | |
-| --- | --- |
-| `id` | Slug used in `/.well-known/oauth-protected-resource/<id>`. |
-| `resource` | Canonical resource indicator clients send as the `resource` parameter. |
-| `resourceName` | Human-readable name, advertised through discovery. |
-| `scopes` | Every scope the resource understands. |
-| `clients` | `id`, `redirectUris`, `redirectUriPatterns`, `allowedScopes`. |
-| `issueToken` | Mints the access token. |
+| Field                          |                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| `id`                           | Slug used in `/.well-known/oauth-protected-resource/<id>`.             |
+| `resource`                     | Canonical resource indicator clients send as the `resource` parameter. |
+| `resourceName`                 | Human-readable name, advertised through discovery.                     |
+| `protectedResourceMetadataUrl` | Optional URL advertised to clients in a `WWW-Authenticate` challenge.  |
+| `scopes`                       | Every scope the resource understands.                                  |
+| `clients`                      | `id`, `redirectUris`, `redirectUriPatterns`, `allowedScopes`.          |
+| `issueToken`                   | Mints the access token.                                                |
 
 ## Matching redirect URIs
 
@@ -180,7 +198,7 @@ clients.
 
 **Loopback** (`localhost`, `127.0.0.1`, `[::1]`) may vary the port, as RFC 8252
 section 7.3 requires, unless the registration pins one. It may also append
-segments *under* the registered path, which the specification does not allow:
+segments _under_ the registered path, which the specification does not allow:
 Codex generates a random one, calling back on
 `http://127.0.0.1:59137/callback/--52FXdsbEbv` against a registered
 `http://127.0.0.1/callback`. Only descendants qualify, never a sibling, so
