@@ -6,7 +6,7 @@ changes to the resource-registration contract never need cross-repo coordination
 | Package | Owns |
 | --- | --- |
 | [`@dinko/adonis-oauth`](packages/oauth/README.md) | OAuth 2.1 authorization server: approve / deny / token, redirect-URI validation, authorization-code storage, and the discovery metadata for the server and its protected resources. Knows nothing about MCP. |
-| `@dinko/adonis-mcp` | MCP server: request handler, controller, tool contract, auth middleware. Registers itself as an OAuth protected resource. Not started yet. |
+| `@dinko/adonis-mcp` | MCP server: Streamable HTTP handler, per-request tools, dedicated access-token guard, and optional OAuth protected-resource scaffolding. |
 
 The dependency runs one way: **mcp → oauth**. Nothing in `oauth` may import
 from `mcp`.

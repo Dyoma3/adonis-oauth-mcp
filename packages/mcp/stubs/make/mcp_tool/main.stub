@@ -1,0 +1,66 @@
+{{{
+  exports({
+    to: app.makePath('app/mcp/tools', entity.path, fileName)
+  })
+}}}
+import { z } from 'zod'
+import type { HttpContext } from '@adonisjs/core/http'
+import type { McpTool } from '@dinko/adonis-mcp/types'
+
+// ### TOOL ###
+
+export function {{ factoryName }}(ctx: HttpContext): Tool {
+  return { name: '{{ toolName }}', config, callback: createCallback(ctx) }
+}
+
+// ### CONFIG ###
+
+const inputSchema = {
+  id: z.string(),
+}
+
+const outputSchema = {
+  id: z.string(),
+}
+
+const output = z.strictObject(outputSchema)
+
+type Tool = McpTool<typeof outputSchema, typeof inputSchema>
+
+const config = {
+  title: '{{ toolTitle }}',
+  description: 'Describe what this tool does, and when a client should reach for it.',
+  inputSchema,
+  outputSchema,
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+  },
+} satisfies Tool['config']
+
+// ### CALLBACK ###
+
+function createCallback(ctx: HttpContext): Tool['callback'] {
+  return async (input) => {
+    const structuredContent = output.parse(await run(ctx, input))
+
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(structuredContent, null, 2),
+        },
+      ],
+      structuredContent,
+    }
+  }
+}
+
+async function run(_ctx: HttpContext, input: { id: string }) {
+  // resolve a service from the request container and call it, for example:
+  // const service = await _ctx.containerResolver.make(SomeService)
+  // return service.execute(input)
+  return { id: input.id }
+}

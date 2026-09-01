@@ -1,0 +1,34 @@
+{{{
+  exports({
+    to: app.middlewarePath('mcp_auth_middleware.ts')
+  })
+}}}
+import { errors } from '@adonisjs/auth'
+import mcpConfig from '#config/mcp'
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+
+/**
+ * Authenticates an MCP request with the guards named in config/mcp.ts.
+ *
+ * On a 401 it advertises where the client can get a token, which is how an
+ * MCP client discovers the authorization server and starts its OAuth flow.
+ */
+export default class McpAuthMiddleware {
+  async handle(ctx: HttpContext, next: NextFn) {
+    try {
+      await ctx.auth.authenticateUsing(mcpConfig.guards)
+      return next()
+    } catch (error) {
+      if (!(error instanceof errors.E_UNAUTHORIZED_ACCESS)) throw error
+
+      const challenge = mcpConfig.protectedResourceMetadataUrl
+        ? \`Bearer resource_metadata="\${mcpConfig.protectedResourceMetadataUrl}"\`
+        : 'Bearer'
+
+      ctx.response.header('WWW-Authenticate', challenge)
+
+      return ctx.response.unauthorized({ error: 'Unauthorized' })
+    }
+  }
+}

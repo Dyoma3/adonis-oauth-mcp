@@ -47,7 +47,7 @@ const {{ variableName }}: OAuthResourceConfig<Scope> = {
     if (!user) return null
 
     const expiresIn = 30 * 24 * 60 * 60
-    const token = await User.accessTokens.create(user, grantedScopes, {
+    const token = await User.{{ tokensProvider }}.create(user, grantedScopes, {
       name: \`oauth:\${client.id}\`,
       expiresIn,
     })

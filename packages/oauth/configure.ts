@@ -44,7 +44,7 @@ router
 `
 
 /**
- * Configure hook, run by \`node ace configure @dinko/adonis-oauth\`.
+ * Configure hook, run by `node ace configure @dinko/adonis-oauth`.
  *
  * Existing files are never overwritten: stubs are skipped when their target
  * already exists, and the routes are only appended once.

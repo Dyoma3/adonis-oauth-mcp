@@ -1,0 +1,40 @@
+{{{
+  exports({
+    to: app.configPath('mcp.ts')
+  })
+}}}
+import { defineConfig } from '@dinko/adonis-mcp'
+import { mcpServerInstructions } from '../app/mcp/server_instructions.js'
+import { tools } from '../app/mcp/tools/main.js'
+{{#if oauthResource}}
+import mcpResource from '../app/oauth_resources/mcp_resource.js'
+{{/if}}
+
+export default defineConfig({
+  name: '{{ serverName }}',
+  version: '0.1.0',
+
+  /**
+   * Sent to the client when it connects, in app/mcp/server_instructions.ts.
+   */
+  instructions: mcpServerInstructions,
+
+  /**
+   * The guards the auth middleware authenticates with, so it does not have to
+   * name one of yours.
+   */
+  guards: ['{{ guard }}'],
+{{#if oauthResource}}
+
+  /**
+   * Advertised in the WWW-Authenticate header of a 401, so an MCP client can
+   * discover which authorization server protects this one and start its flow.
+   */
+  protectedResourceMetadataUrl: mcpResource.protectedResourceMetadataUrl,
+{{/if}}
+
+  /**
+   * The explicit application registry lives in app/mcp/tools/main.ts.
+   */
+  tools,
+})

@@ -1,5 +1,5 @@
 import { relative } from 'node:path'
-import { BaseCommand, args } from '@adonisjs/core/ace'
+import { BaseCommand, args, flags } from '@adonisjs/core/ace'
 import { SyntaxKind } from 'ts-morph'
 import string from '@adonisjs/core/helpers/string'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
@@ -18,6 +18,9 @@ export default class MakeOAuthResource extends BaseCommand {
   @args.string({ description: 'Name of the OAuth resource' })
   declare name: string
 
+  @flags.string({ description: 'Static access token provider defined on the user model' })
+  declare tokensProvider?: string
+
   async run() {
     const codemods = await this.createCodemods()
     const entity = this.app.generators.createEntity(this.name)
@@ -34,6 +37,7 @@ export default class MakeOAuthResource extends BaseCommand {
         variableName,
         resourceId: string.dashCase(entity.name),
         resourceName: string.capitalCase(entity.name),
+        tokensProvider: string.camelCase(this.tokensProvider ?? 'accessTokens'),
       }
     )
 

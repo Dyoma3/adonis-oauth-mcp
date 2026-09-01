@@ -1,0 +1,14 @@
+{{{
+  exports({
+    to: app.makePath('app/mcp', 'server_instructions.ts')
+  })
+}}}
+/**
+ * Sent to the client when it connects. This is where you tell it what the
+ * server is for, which vocabulary to use, and anything it would otherwise get
+ * wrong — the tools describe themselves, but not how they fit together.
+ */
+export const mcpServerInstructions = [
+  '{{ serverName }} exposes its data and operations as MCP tools.',
+  'Describe here what the server is for, and how a client should use it well.',
+].join(' ')

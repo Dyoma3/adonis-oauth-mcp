@@ -1,0 +1,19 @@
+{{{
+  exports({
+    to: app.httpControllersPath('mcps_controller.ts')
+  })
+}}}
+import { inject } from '@adonisjs/core'
+import { HttpContext } from '@adonisjs/core/http'
+import { McpRequestHandler } from '@dinko/adonis-mcp'
+
+/**
+ * Delegates to the package, which owns the MCP request lifecycle. The route
+ * is in start/routes.ts.
+ */
+export default class McpsController {
+  @inject()
+  handle(_ctx: HttpContext, handler: McpRequestHandler) {
+    return handler.execute()
+  }
+}

@@ -48,6 +48,7 @@ test('renders a resource into its own file', async () => {
     variableName: 'mcpServerResource',
     resourceId: 'mcp-server',
     resourceName: 'Mcp Server',
+    tokensProvider: 'accessTokens',
   })
 
   assert.equal(destination, join(appRoot, 'app/oauth_resources/mcp_server_resource.ts'))
@@ -55,7 +56,20 @@ test('renders a resource into its own file', async () => {
   assert.match(contents, /id: 'mcp-server'/)
   assert.match(contents, /resource: `\$\{env\.get\('APP_URL'\)\}\/mcp-server`/)
   assert.match(contents, /name: `oauth:\$\{client\.id\}`/)
+  assert.match(contents, /User\.accessTokens\.create/)
   assert.match(contents, /export default mcpServerResource/)
+})
+
+test('renders a resource with a dedicated token provider', async () => {
+  const { contents } = await render('make/oauth_resource/main.stub', {
+    fileName: 'mcp_resource.ts',
+    variableName: 'mcpResource',
+    resourceId: 'mcp',
+    resourceName: 'Mcp',
+    tokensProvider: 'mcpAccessTokens',
+  })
+
+  assert.match(contents, /User\.mcpAccessTokens\.create/)
 })
 
 test('renders the authorization codes migration', async () => {

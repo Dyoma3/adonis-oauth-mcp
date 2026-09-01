@@ -1,0 +1,12 @@
+{{{
+  exports({
+    to: app.makePath('app/mcp/tools/main.ts')
+  })
+}}}
+import type { McpToolFactory } from '@dinko/adonis-mcp/types'
+
+/**
+ * Explicit registry of the tools served by this MCP server.
+ * \`node ace make:mcp-tool <name>\` keeps this list up to date.
+ */
+export const tools: McpToolFactory[] = []
